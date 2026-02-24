@@ -1,6 +1,8 @@
+diff --git a/scripts/cmake/vcpkg_configure_cmake.cmake b/scripts/cmake/vcpkg_configure_cmake.cmake
+index 37403ef4e5..20d106ba6d 100644
 --- a/scripts/cmake/vcpkg_configure_cmake.cmake
 +++ b/scripts/cmake/vcpkg_configure_cmake.cmake
-@@ -177,11 +177,12 @@ function(vcpkg_configure_cmake)
+@@ -158,11 +158,12 @@ function(vcpkg_configure_cmake)
          "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-dbg")
  
      if(DEFINED VCPKG_CMAKE_SYSTEM_NAME)
