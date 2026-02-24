@@ -45,6 +45,18 @@ install-vcpkg\vcpkg_install.bat <VCPKG_PATH>
 
 Scripts in `install-vcpkg/` install a pinned version of vcpkg. They skip reinstallation if the correct commit is already present.
 
+### Quick start
+
+Сlone the registry and run locally:
+
+```bash
+git clone https://github.com/Windscribe/ws-vcpkg-registry.git
+# Linux / macOS
+./ws-vcpkg-registry/install-vcpkg/vcpkg_install.sh <VCPKG_PATH>
+# Windows
+ws-vcpkg-registry\install-vcpkg\vcpkg_install.bat <VCPKG_PATH>
+```
+
 After cloning, the following patches from `install-vcpkg/patches/` are automatically applied to vcpkg:
 
 - **`vcpkg_configure_cmake.patch`** — passes correct `CMAKE_SYSTEM_NAME=tvOS` when building for `appletvos`/`appletvsimulator` sysroot
