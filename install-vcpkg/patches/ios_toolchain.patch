@@ -1,0 +1,17 @@
+--- a/scripts/toolchains/ios.cmake
++++ b/scripts/toolchains/ios.cmake
+@@ -22,7 +22,13 @@ if(NOT _VCPKG_IOS_TOOLCHAIN)
+     )
+ 
+     # Set the CMAKE_SYSTEM_NAME for try_compile calls.
+-    set(CMAKE_SYSTEM_NAME iOS CACHE STRING "")
++    if(CMAKE_OSX_SYSROOT STREQUAL "appletvos")
++        set(CMAKE_SYSTEM_NAME tvOS CACHE STRING "" FORCE)
++    elseif(CMAKE_OSX_SYSROOT STREQUAL "appletvsimulator")
++        set(CMAKE_SYSTEM_NAME tvOS CACHE STRING "" FORCE)
++    else()
++        set(CMAKE_SYSTEM_NAME iOS CACHE STRING "")
++    endif()
+ 
+     macro(_vcpkg_setup_ios_arch arch)
+         unset(_vcpkg_ios_system_processor)

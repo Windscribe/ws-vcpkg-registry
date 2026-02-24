@@ -1,0 +1,7 @@
+# Normalize all text files to LF, regardless of core.autocrlf
+* text=auto eol=lf
+
+# Patches should retain their original line endings
+install-vcpkg/patches/* -text
+ports/**/*.patch -text
+ports/**/*.diff -text

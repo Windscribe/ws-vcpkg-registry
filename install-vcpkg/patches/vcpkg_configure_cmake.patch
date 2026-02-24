@@ -1,0 +1,20 @@
+--- a/scripts/cmake/vcpkg_configure_cmake.cmake
++++ b/scripts/cmake/vcpkg_configure_cmake.cmake
+@@ -177,11 +177,12 @@ function(vcpkg_configure_cmake)
+         "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-dbg")
+ 
+     if(DEFINED VCPKG_CMAKE_SYSTEM_NAME)
+-        vcpkg_list(APPEND arg_OPTIONS "-DCMAKE_SYSTEM_NAME=${VCPKG_CMAKE_SYSTEM_NAME}")
+-        if(VCPKG_TARGET_IS_UWP AND NOT DEFINED VCPKG_CMAKE_SYSTEM_VERSION)
+-            set(VCPKG_CMAKE_SYSTEM_VERSION 10.0)
+-        elseif(VCPKG_TARGET_IS_ANDROID AND NOT DEFINED VCPKG_CMAKE_SYSTEM_VERSION)
+-            set(VCPKG_CMAKE_SYSTEM_VERSION 21)
++        if(VCPKG_OSX_SYSROOT STREQUAL "appletvos")
++            vcpkg_list(APPEND arg_OPTIONS "-DCMAKE_SYSTEM_NAME=tvOS")
++        elseif(VCPKG_OSX_SYSROOT STREQUAL "appletvsimulator")
++            vcpkg_list(APPEND arg_OPTIONS "-DCMAKE_SYSTEM_NAME=tvOS")
++        else()
++            vcpkg_list(APPEND arg_OPTIONS "-DCMAKE_SYSTEM_NAME=${VCPKG_CMAKE_SYSTEM_NAME}")
+         endif()
+     endif()
+ 
