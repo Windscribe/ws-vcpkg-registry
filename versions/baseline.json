@@ -10,7 +10,7 @@
     "lzo": { "baseline": "2.10", "port-version": 9 },
     "miniaudio": { "baseline": "0.11.22", "port-version": 0 },
     "openvpn": { "baseline": "2.6.17", "port-version": 0 },
-    "openssl": { "baseline": "3.6.0", "port-version": 1 },
+    "openssl": { "baseline": "3.6.0", "port-version": 2 },
     "qtbase": { "baseline": "6.8.3", "port-version": 5 },
     "scapix": { "baseline": "1.0.39", "port-version": 0 },
     "scapix-bin": { "baseline": "2.0.16", "port-version": 0 },
