@@ -62,7 +62,6 @@ if [ "$NEEDS_INSTALL" = "1" ]; then
 fi
 
 TRIPLETS_SRC="$SCRIPT_DIR/../triplets"
-TRIPLETS_DST="$1/custom_triplets"
+TRIPLETS_DST="$1/triplets"
 echo "Copying custom triplets to $TRIPLETS_DST..."
-mkdir -p "$TRIPLETS_DST"
 cp -f "$TRIPLETS_SRC"/*.cmake "$TRIPLETS_DST/"

@@ -61,7 +61,6 @@ if !NEEDS_INSTALL!==1 (
 )
 
 set TRIPLETS_SRC=%~dp0..\triplets
-set TRIPLETS_DST=%VCPKG_ROOT%\custom_triplets
+set TRIPLETS_DST=%VCPKG_ROOT%\triplets
 echo Copying custom triplets to "%TRIPLETS_DST%"...
-if not exist "%TRIPLETS_DST%\" mkdir "%TRIPLETS_DST%"
 xcopy /Y /Q "%TRIPLETS_SRC%\*.cmake" "%TRIPLETS_DST%\"
