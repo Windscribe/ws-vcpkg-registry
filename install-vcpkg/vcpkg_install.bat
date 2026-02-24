@@ -21,17 +21,18 @@ if "%~2"=="--configure-git" (
     git config --global url."https://gitlab-ci-token:%CI_JOB_TOKEN%@gitlab.int.windscribe.com/".insteadOf "git@gitlab.int.windscribe.com:"
 )
 
-set VCPKG_ROOT=%1
+set VCPKG_ROOT=%~1
 set /p VCPKG_COMMIT=<"%~dp0vcpkg_commit.txt"
 
 mkdir c:\vcpkg_cache
 
+set PATCHES_DIR=%~dp0patches
 set NEEDS_INSTALL=0
-if exist %VCPKG_ROOT%\vcpkg.exe (
-    for /f %%i in ('git -C %VCPKG_ROOT% rev-parse HEAD 2^>nul') do set CURRENT_COMMIT=%%i
+if exist "%VCPKG_ROOT%\vcpkg.exe" (
+    for /f %%i in ('git -C "%VCPKG_ROOT%" rev-parse HEAD 2^>nul') do set CURRENT_COMMIT=%%i
     if "!CURRENT_COMMIT!"=="%VCPKG_COMMIT%" (
         echo vcpkg is installed and up to date
-        %VCPKG_ROOT%\vcpkg version
+        "%VCPKG_ROOT%\vcpkg" version
     ) else (
         echo vcpkg commit mismatch: expected %VCPKG_COMMIT%, got !CURRENT_COMMIT!
         set NEEDS_INSTALL=1
@@ -43,25 +44,24 @@ if exist %VCPKG_ROOT%\vcpkg.exe (
 
 if !NEEDS_INSTALL!==1 (
     echo Installing vcpkg at commit %VCPKG_COMMIT%
-    if exist %VCPKG_ROOT%\ rmdir /s/q %VCPKG_ROOT%
-    mkdir %VCPKG_ROOT%
+    if exist "%VCPKG_ROOT%\" rmdir /s/q "%VCPKG_ROOT%"
+    mkdir "%VCPKG_ROOT%"
     PUSHD .
-    cd %VCPKG_ROOT%
+    cd "%VCPKG_ROOT%"
     git clone https://github.com/Microsoft/vcpkg.git .
     git checkout %VCPKG_COMMIT%
     POPD
     echo Applying custom patches to vcpkg...
-    set PATCHES_DIR=%~dp0patches
-    git -C %VCPKG_ROOT% apply "%PATCHES_DIR%\vcpkg_configure_cmake.patch"
-    git -C %VCPKG_ROOT% apply "%PATCHES_DIR%\ios_toolchain.patch"
+    git -C "%VCPKG_ROOT%" apply "%PATCHES_DIR%\vcpkg_configure_cmake.patch"
+    git -C "%VCPKG_ROOT%" apply "%PATCHES_DIR%\ios_toolchain.patch"
     PUSHD .
-    cd %VCPKG_ROOT%
+    cd "%VCPKG_ROOT%"
     bootstrap-vcpkg.bat -disableMetrics
     POPD
 )
 
 set TRIPLETS_SRC=%~dp0..\triplets
 set TRIPLETS_DST=%VCPKG_ROOT%\custom_triplets
-echo Copying custom triplets to %TRIPLETS_DST%...
-if not exist %TRIPLETS_DST%\ mkdir %TRIPLETS_DST%
+echo Copying custom triplets to "%TRIPLETS_DST%"...
+if not exist "%TRIPLETS_DST%\" mkdir "%TRIPLETS_DST%"
 xcopy /Y /Q "%TRIPLETS_SRC%\*.cmake" "%TRIPLETS_DST%\"
