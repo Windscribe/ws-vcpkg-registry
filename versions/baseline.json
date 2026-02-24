@@ -1,0 +1,20 @@
+{
+  "default": {
+    "7zip": { "baseline": "23.01", "port-version": 1 },
+    "boost-context": { "baseline": "1.88.0", "port-version": 0 },
+    "boost-process": { "baseline": "1.88.0", "port-version": 0 },
+    "c-ares": { "baseline": "1.34.5", "port-version": 0 },
+    "ctrld": { "baseline": "1.4.9", "port-version": 0 },
+    "curl": { "baseline": "8.17.0", "port-version": 3 },
+    "lz4": { "baseline": "1.9.4", "port-version": 1 },
+    "lzo": { "baseline": "2.10", "port-version": 9 },
+    "miniaudio": { "baseline": "0.11.22", "port-version": 0 },
+    "openvpn": { "baseline": "2.6.17", "port-version": 0 },
+    "openssl": { "baseline": "3.6.0", "port-version": 1 },
+    "qtbase": { "baseline": "6.8.3", "port-version": 5 },
+    "scapix": { "baseline": "1.0.39", "port-version": 0 },
+    "scapix-bin": { "baseline": "2.0.16", "port-version": 0 },
+    "skyr-url": { "baseline": "1.13.0", "port-version": 2 },
+    "spdlog": { "baseline": "1.14.1", "port-version": 0 }
+  }
+}
