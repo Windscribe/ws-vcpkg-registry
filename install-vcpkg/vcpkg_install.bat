@@ -56,7 +56,7 @@ if !NEEDS_INSTALL!==1 (
     git -C "%VCPKG_ROOT%" apply "%PATCHES_DIR%\ios_toolchain.patch"
     PUSHD .
     cd "%VCPKG_ROOT%"
-    bootstrap-vcpkg.bat -disableMetrics
+    call bootstrap-vcpkg.bat -disableMetrics
     POPD
 )
 
