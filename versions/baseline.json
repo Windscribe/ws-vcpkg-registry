@@ -3,7 +3,7 @@
     "7zip": { "baseline": "23.01", "port-version": 1 },
     "boost-context": { "baseline": "1.88.0", "port-version": 0 },
     "boost-process": { "baseline": "1.88.0", "port-version": 0 },
-    "c-ares": { "baseline": "1.34.6", "port-version": 0 },
+    "c-ares": { "baseline": "1.34.5", "port-version": 1 },
     "ctrld": { "baseline": "1.5.0", "port-version": 0 },
     "curl": { "baseline": "8.19.0", "port-version": 0 },
     "lz4": { "baseline": "1.9.4", "port-version": 1 },
