@@ -1,0 +1,8 @@
+{
+  "name": "tap-windows6-driver",
+  "version": "9.27.0",
+  "port-version": 0,
+  "description": "TAP-Windows6 NDIS driver binaries for OpenVPN",
+  "homepage": "https://github.com/OpenVPN/tap-windows6",
+  "supports": "windows"
+}
