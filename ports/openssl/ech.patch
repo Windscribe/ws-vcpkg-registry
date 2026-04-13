@@ -5858,7 +5858,7 @@ index e4d105c991..6b5c8a146f 100644
  
  typedef struct bio_st BIO;
  typedef struct bignum_st BIGNUM;
-@@ -146,21 +146,21 @@ typedef struct hmac_ctx_st HMAC_CTX;
+@@ -146,23 +146,23 @@ typedef struct hmac_ctx_st HMAC_CTX;
  typedef struct dh_st DH;
  typedef struct dh_method DH_METHOD;
  
@@ -5875,7 +5875,9 @@ index e4d105c991..6b5c8a146f 100644
  typedef struct rsa_meth_st RSA_METHOD;
 -#endif
 +# endif
+ 
  typedef struct rsa_pss_params_st RSA_PSS_PARAMS;
+ typedef struct rsa_oaep_params_st RSA_OAEP_PARAMS;
  
 -#ifndef OPENSSL_NO_DEPRECATED_3_0
 +# ifndef OPENSSL_NO_DEPRECATED_3_0
@@ -15642,11 +15644,11 @@ diff --git a/util/platform_symbols/windows-symbols.txt b/util/platform_symbols/w
 index ef82cb14c8..ccf3af2b3c 100644
 --- a/util/platform_symbols/windows-symbols.txt
 +++ b/util/platform_symbols/windows-symbols.txt
-@@ -89,6 +89,7 @@ __current_exception_context
+@@ -162,6 +162,7 @@
+ strerror_s
  strlen
- strstr
- strchr
 +strlen
- memmove
- strrchr
- memcmp
+ strncmp
+ strncpy
+ strncpy_s
+ strpbrk
