@@ -41,6 +41,14 @@ qt_install_submodule(PATCHES    ${${PORT}_PATCHES}
                      CONFIGURE_OPTIONS
                       ${EXTRA_OPTIONS}
                       -DCMAKE_DISABLE_FIND_PACKAGE_LTTngUST:BOOL=ON
+                      -DFEATURE_quickcontrols2_fusion:BOOL=OFF
+                      -DFEATURE_quickcontrols2_imagine:BOOL=OFF
+                      -DFEATURE_quickcontrols2_material:BOOL=OFF
+                      -DFEATURE_quickcontrols2_universal:BOOL=OFF
+                      -DFEATURE_quickcontrols2_fluentwinui3:BOOL=OFF
+                      -DFEATURE_quickcontrols2_macos:BOOL=OFF
+                      -DFEATURE_quickcontrols2_ios:BOOL=OFF
+                      -DFEATURE_quickcontrols2_windows:BOOL=OFF
                      CONFIGURE_OPTIONS_RELEASE
                      CONFIGURE_OPTIONS_DEBUG
                     )
