@@ -24,12 +24,15 @@ vcpkg_from_github(
 set(VCPKG_BUILD_TYPE release)
 
 if(VCPKG_TARGET_IS_WINDOWS)
+    # Windscribe: OpenVPN 2.7.1 uses APIs deprecated/changed in OpenSSL 4.0
+    # (X509_cmp_time, non-const X509_NAME returns). Suppress until upstream updates.
     vcpkg_configure_cmake(
       SOURCE_PATH "${SOURCE_PATH}"
       OPTIONS
         -DENABLE_PKCS11=OFF
         -DBUILD_TESTING=OFF
         -DPKG_CONFIG_EXECUTABLE="${CURRENT_HOST_INSTALLED_DIR}/tools/pkgconf/pkgconf"
+        "-DCMAKE_C_FLAGS=/wd4996 /wd4090"
     )
         vcpkg_install_cmake()
 else()
