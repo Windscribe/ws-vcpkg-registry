@@ -1,16 +1,3 @@
-diff --git a/src/openvpn/socket.c b/src/openvpn/socket.c
-index a38972d4..bef0a587 100644
---- a/src/openvpn/socket.c
-+++ b/src/openvpn/socket.c
-@@ -2440,7 +2440,7 @@ link_socket_write_tcp(struct link_socket *sock, struct buffer *buf, struct link_
- #ifdef _WIN32
-                 size += link_socket_write_win32(sock, buf, to);
- #else
--                size += link_socket_write_tcp_posix(sock, buf, to);
-+                size += link_socket_write_tcp_posix(sock, buf);
- #endif
-                 buf->len = left;
-                 left -= split_piece_len_cur;
 diff --git a/src/openvpn/ssl_openssl.c b/src/openvpn/ssl_openssl.c
 index 09f23964..cfc7a915 100644
 --- a/src/openvpn/ssl_openssl.c
