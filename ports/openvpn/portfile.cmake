@@ -13,8 +13,8 @@ endif()
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO OpenVPN/openvpn
-    REF 5c4e4c08679c6c754928d4f6c31ab6180b3cff3d
-    SHA512 7d1006ff8a6d37aa15ff4ce1d625699404e326651b07c58b7fd707c1d69504d2890c319510c08b2e27e2a5f7d62e688602670c0b9a3a60701b36872fc40073a0
+    REF 8e9e91f4caff9a80961f32a1f9eda7e5a489176e
+    SHA512 73e15cfb2d97dcc7eb64b58f9474353a0cdafd82853d169e5080b92af8f666a64b168e2730e9a704185ccb04f51fdb7369a266487c306fb9780dd54a05675d77
     PATCHES
         fix-cmakelist.patch
         anti-censorship.patch
@@ -24,7 +24,7 @@ vcpkg_from_github(
 set(VCPKG_BUILD_TYPE release)
 
 if(VCPKG_TARGET_IS_WINDOWS)
-    # Windscribe: OpenVPN 2.7.1 uses APIs deprecated/changed in OpenSSL 4.0
+    # Windscribe: OpenVPN uses APIs deprecated/changed in OpenSSL 4.0
     # (X509_cmp_time, non-const X509_NAME returns). Suppress until upstream updates.
     vcpkg_configure_cmake(
       SOURCE_PATH "${SOURCE_PATH}"
