@@ -10,6 +10,7 @@ vcpkg_from_github(
         dependencies.patch
         # windscribe patches
         super-large-padding-extension.patch
+        Export-SSL_OP_LEGACY_EC_POINT_FORMATS-OpenSSL-option.patch
 )
 # The on-the-fly tarballs do not carry the details of release tarballs.
 vcpkg_replace_string("${SOURCE_PATH}/include/curl/curlver.h" [[-DEV"]] [["]])
