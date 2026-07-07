@@ -1,10 +1,11 @@
 diff --git a/include/curl/curl.h b/include/curl/curl.h
+index 7e59e43..19a02ed 100644
 --- a/include/curl/curl.h
 +++ b/include/curl/curl.h
-@@ -962,6 +962,9 @@ typedef enum {
+@@ -963,6 +963,9 @@ typedef enum {
  /* If possible, send data using TLS 1.3 early data */
  #define CURLSSLOPT_EARLYDATA (1L << 6)
-
+ 
 +#define CURLSSLOPT_TLSEXT_PADDING (1<<7)
 +#define CURLSSLOPT_TLSEXT_PADDING_SUPER (1<<8)
 +
@@ -12,36 +13,31 @@ diff --git a/include/curl/curl.h b/include/curl/curl.h
     CURLOPT_HAPPY_EYEBALLS_TIMEOUT_MS.3 and happy-eyeballs-timeout-ms.d document
     this value, keep them in sync. */
 diff --git a/lib/setopt.c b/lib/setopt.c
+index eb9ff2e..e12057e 100644
 --- a/lib/setopt.c
 +++ b/lib/setopt.c
-@@ -419,6 +419,8 @@ static void set_ssl_options(struct ssl_config_data *ssl,
-   ssl->native_ca_store = !!(arg & CURLSSLOPT_NATIVE_CA);
-   ssl->auto_client_cert = !!(arg & CURLSSLOPT_AUTO_CLIENT_CERT);
-   ssl->earlydata = !!(arg & CURLSSLOPT_EARLYDATA);
-+  ssl->tlsext_padding = !!(arg & CURLSSLOPT_TLSEXT_PADDING);
-+  ssl->tlsext_padding_super = !!(arg & CURLSSLOPT_TLSEXT_PADDING_SUPER);
- }
+@@ -978,11 +978,11 @@ static CURLcode setopt_long_ssl(struct Curl_easy *data, CURLoption option,
+       s->use_ssl = (unsigned char)arg;
+     break;
+   case CURLOPT_SSL_OPTIONS:
+-    s->ssl.primary.ssl_options = (unsigned char)(arg & 0xff);
++    s->ssl.primary.ssl_options = (uint16_t)(arg & 0xffff);
+     break;
+ #ifndef CURL_DISABLE_PROXY
+   case CURLOPT_PROXY_SSL_OPTIONS:
+-    s->proxy_ssl.primary.ssl_options = (unsigned char)(arg & 0xff);
++    s->proxy_ssl.primary.ssl_options = (uint16_t)(arg & 0xffff);
+     break;
  #endif
-
-diff --git a/lib/urldata.h b/lib/urldata.h
---- a/lib/urldata.h
-+++ b/lib/urldata.h
-@@ -270,6 +270,8 @@ struct ssl_config_data {
-   BIT(custom_cafile); /* application has set custom CA file */
-   BIT(custom_capath); /* application has set custom CA path */
-   BIT(custom_cablob); /* application has set custom CA blob */
-+  BIT(tlsext_padding);
-+  BIT(tlsext_padding_super);
- };
-
- struct ssl_general_config {
+   case CURLOPT_SSL_ENABLE_NPN:
 diff --git a/lib/vtls/openssl.c b/lib/vtls/openssl.c
+index 010bbb9..67757e6 100644
 --- a/lib/vtls/openssl.c
 +++ b/lib/vtls/openssl.c
-@@ -3812,6 +3812,14 @@ CURLcode Curl_ossl_ctx_init(struct ossl_ctx *octx,
+@@ -3769,6 +3769,14 @@ CURLcode Curl_ossl_ctx_init(struct ossl_ctx *octx,
    if(!ssl_config->enable_beast)
      ctx_options &= ~(ctx_option_t)SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS;
-
+ 
 +  if(ssl_config->tlsext_padding)
 +    ctx_options |= (ctx_option_t)SSL_OP_TLSEXT_PADDING;
 +
@@ -53,4 +49,47 @@ diff --git a/lib/vtls/openssl.c b/lib/vtls/openssl.c
    DEBUGASSERT(ssl_version_min != CURL_SSLVERSION_DEFAULT);
    switch(ssl_version_min) {
    case CURL_SSLVERSION_SSLv2:
-   case CURL_SSLVERSION_SSLv3:
+diff --git a/lib/vtls/vtls_config.c b/lib/vtls/vtls_config.c
+index 4a9b696..7823bda 100644
+--- a/lib/vtls/vtls_config.c
++++ b/lib/vtls/vtls_config.c
+@@ -238,7 +238,7 @@ static void ssl_easy_config_compl_options(struct Curl_peer *origin,
+                                           struct Curl_peer *initial_origin,
+                                           struct ssl_config_data *sslc)
+ {
+-  uint8_t options = sslc->primary.ssl_options;
++  uint16_t options = sslc->primary.ssl_options;
+   /* If set via CURLOPT_(PROXY_)SSL_OPTIONS, we definitely use it.
+    * If not, we switch it on for supported backends if no custom
+    * CA settings exist. */
+@@ -248,6 +248,8 @@ static void ssl_easy_config_compl_options(struct Curl_peer *origin,
+   sslc->no_revoke = !!(options & CURLSSLOPT_NO_REVOKE);
+   sslc->revoke_best_effort = !!(options & CURLSSLOPT_REVOKE_BEST_EFFORT);
+   sslc->earlydata = !!(options & CURLSSLOPT_EARLYDATA);
++  sslc->tlsext_padding = !!(options & CURLSSLOPT_TLSEXT_PADDING);
++  sslc->tlsext_padding_super = !!(options & CURLSSLOPT_TLSEXT_PADDING_SUPER);
+ 
+   sslc->auto_client_cert = Curl_peer_equal(origin, initial_origin) &&
+                            !!(options & CURLSSLOPT_AUTO_CLIENT_CERT);
+diff --git a/lib/vtls/vtls_config.h b/lib/vtls/vtls_config.h
+index 44e691d..0e2125b 100644
+--- a/lib/vtls/vtls_config.h
++++ b/lib/vtls/vtls_config.h
+@@ -53,7 +53,7 @@ struct ssl_primary_config {
+ #endif
+   char *curves;          /* list of curves to use */
+   uint32_t version_max; /* max supported version the client wants to use */
+-  uint8_t ssl_options;  /* the CURLOPT_SSL_OPTIONS bitmask */
++  uint16_t ssl_options;  /* the CURLOPT_SSL_OPTIONS bitmask */
+   uint8_t version;    /* what version the client wants to use */
+   BIT(verifypeer);       /* set TRUE if this is desired */
+   BIT(verifyhost);       /* set TRUE if CN/SAN must match hostname */
+@@ -80,6 +80,8 @@ struct ssl_config_data {
+   BIT(custom_cafile); /* application has set custom CA file */
+   BIT(custom_capath); /* application has set custom CA path */
+   BIT(custom_cablob); /* application has set custom CA blob */
++  BIT(tlsext_padding);
++  BIT(tlsext_padding_super);
+ };
+ 
+ struct ssl_general_config {

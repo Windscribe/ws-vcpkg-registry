@@ -2,11 +2,10 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO c-ares/c-ares
     REF "v${VERSION}"
-    SHA512 5c6b4422e158cef2943f7066fb8c738d9ac6f470cdb3ca5cf2b9fa26494f4fb1d7fef25a73d59d9f12aa8eaadc1da358c889d84ac8703b7e430134310bda45ba
+    SHA512 fdfbbe3df4cc7ee3d0996adab90597a9d1b6783ecdfc5fba738f375d42859cdd62d0f1563c88748d48281857a952ac44c850288c18a29548c444e33cc19f8a1f
     HEAD_REF main
     PATCHES
         avoid-docs.patch
-        CVE-2025-62408.patch
 )
 
 string(COMPARE EQUAL "${VCPKG_LIBRARY_LINKAGE}" "static" BUILD_STATIC)

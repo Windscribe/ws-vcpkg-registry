@@ -13,8 +13,8 @@ endif()
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO OpenVPN/openvpn
-    REF 8e9e91f4caff9a80961f32a1f9eda7e5a489176e
-    SHA512 73e15cfb2d97dcc7eb64b58f9474353a0cdafd82853d169e5080b92af8f666a64b168e2730e9a704185ccb04f51fdb7369a266487c306fb9780dd54a05675d77
+    REF b25bb2a8bda814edab39b4246d4e296330a7a29e
+    SHA512 ef8c8352ce6a146297ff81abad868c61912aafd64905637b6967db54994d707c07df0a696d79f91debc59baa3132de30b39d9729e26eb2d7a90fd75e13a856d7
     PATCHES
         fix-cmakelist.patch
         anti-censorship.patch

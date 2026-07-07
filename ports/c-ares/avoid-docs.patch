@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 194485a..e903e50 100644
+index 4cac805..ef051a1 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -618,7 +618,7 @@ ADD_SUBDIRECTORY (include)
+@@ -769,7 +769,7 @@ ADD_SUBDIRECTORY (include)
  ADD_SUBDIRECTORY (src)
  
  # Docs
