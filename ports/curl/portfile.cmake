@@ -103,7 +103,12 @@ vcpkg_cmake_configure(
         -DCURL_USE_PKGCONFIG=ON
         -DCMAKE_DISABLE_FIND_PACKAGE_Perl=ON
         -DCURL_DISABLE_OPENSSL_AUTO_LOAD_CONFIG=ON
+        # never bake a build-host CA bundle path into libcurl; wsnet supplies its own trust anchors
+        -DCURL_CA_BUNDLE=none
+        -DCURL_CA_PATH=none
     MAYBE_UNUSED_VARIABLES
+        CURL_CA_BUNDLE
+        CURL_CA_PATH
         VCPKG_LOCK_FIND_PACKAGE_GSS
         VCPKG_LOCK_FIND_PACKAGE_LDAP
         VCPKG_LOCK_FIND_PACKAGE_Libidn2
