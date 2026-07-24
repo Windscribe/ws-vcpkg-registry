@@ -1,0 +1,255 @@
+From d6170a2c58a625893daf1b1e72e5d8d234971822 Mon Sep 17 00:00:00 2001
+From: Censorship <censorship@windscribe.com>
+Date: Thu, 23 Jul 2026 16:27:08 +0100
+Subject: [PATCH 2/3] Anti-censorship: add support for Amnezia's Jc/Jmin/Jmax
+
+---
+ src/openvpn/anti_censorship.c | 52 +++++++++++++++++++++++++++++++++++
+ src/openvpn/anti_censorship.h | 21 ++++++++++++++
+ src/openvpn/options.c         | 45 ++++++++++++++++++++++++++++++
+ src/openvpn/options.h         |  5 ++++
+ src/openvpn/socket.c          |  5 ++++
+ src/openvpn/socket.h          | 10 ++++++-
+ 6 files changed, 137 insertions(+), 1 deletion(-)
+
+diff --git a/src/openvpn/anti_censorship.c b/src/openvpn/anti_censorship.c
+index 0a7b388c..3dd607f3 100644
+--- a/src/openvpn/anti_censorship.c
++++ b/src/openvpn/anti_censorship.c
+@@ -63,6 +63,58 @@ ac_udp_stuffing(struct link_socket *sock, struct link_socket_actual *to)
+     return true;
+ }
+ 
++bool
++ac_udp_junk_packets(struct link_socket *sock, struct link_socket_actual *to)
++{
++    if (!sock || !to)
++        return false;
++
++    /* Only on UDP sockets */
++    if (sock->info.proto != PROTO_UDP)
++        return false;
++
++    int count = sock->junk_packet_count;
++    int jmin  = sock->junk_packet_min_size;
++    int jmax  = sock->junk_packet_max_size;
++
++    if (count <= 0 || jmin <= 0 || jmax <= 0)
++        return false;
++
++    if (jmin > jmax)
++        jmax = jmin;
++
++    int range = jmax - jmin;
++
++    for (int i = 0; i < count; i++)
++    {
++        /* pick a random size in [jmin, jmax] */
++        uint16_t rnd;
++        rand_bytes((uint8_t *)&rnd, sizeof(rnd));
++        int pkt_size = jmin + (range > 0 ? (int)(rnd % (range + 1)) : 0);
++
++        struct buffer junk_buf = alloc_buf(pkt_size);
++        /* fill with random data */
++        uint8_t *data = buf_write_alloc(&junk_buf, pkt_size);
++        if (data)
++            rand_bytes(data, pkt_size);
++
++#ifdef _WIN32
++        for (int k = 0; k < 5; k++)
++        {
++            int ret = link_socket_write_win32(sock, &junk_buf, to);
++            if (ret != -1)
++                break;
++            Sleep(5);
++        }
++#else
++        link_socket_write_udp_posix(sock, &junk_buf, to);
++#endif
++        free_buf(&junk_buf);
++    }
++
++    return true;
++}
++
+ int
+ ac_tcp_split_reset_write(struct link_socket *sock, struct buffer *buf,
+                           struct link_socket_actual *to)
+diff --git a/src/openvpn/anti_censorship.h b/src/openvpn/anti_censorship.h
+index 62008af7..2a94b64f 100644
+--- a/src/openvpn/anti_censorship.h
++++ b/src/openvpn/anti_censorship.h
+@@ -64,6 +64,12 @@ struct reliable;
+ #define AC_AMNEZIA_TAG_RAND_MAX               1400    /* max bytes for <r N> */
+ #define AC_AMNEZIA_TAG_RANDC_MAX              1400    /* max chars for <rc N> and <rd N> */
+ 
++/*
++ * AmneziaWG Jc/Jmin/Jmax junk packet parameters
++ */
++#define AC_JUNK_PACKET_COUNT_MAX  1000   /* max value for Jc */
++#define AC_JUNK_PACKET_SIZE_MAX   1400   /* max value for Jmin/Jmax (bytes) */
++
+ /**
+  * Perform UDP stuffing: send random packets before the actual packet
+  * @param sock Link socket to use for sending
+@@ -97,6 +103,18 @@ bool ac_build_pre_connect_packet(const char *spec, struct buffer *out);
+ void ac_send_pre_connect_packets(struct link_socket *sock,
+                                   struct link_socket_actual *to);
+ 
++/**
++ * Send Jc junk UDP packets of random size between Jmin and Jmax bytes.
++ * Packets are filled with random data and sent after the I1..I5 pre-connect
++ * packets and before the actual OpenVPN RESET packet.
++ * Only applicable to UDP; silently ignored on TCP sockets.
++ *
++ * @param sock Link socket (must have junk_packet_count/min/max set)
++ * @param to   Destination address
++ * @return true on success
++ */
++bool ac_udp_junk_packets(struct link_socket *sock, struct link_socket_actual *to);
++
+ /**
+  * Write TCP packet with split RESET (if applicable)
+  * @param sock Link socket to use
+@@ -136,6 +154,9 @@ int ac_send_multiple_resets(const struct tls_session *session,
+             || _ac_opcode == P_CONTROL_HARD_RESET_CLIENT_V3 \
+             || _ac_opcode == P_CONTROL_HARD_RESET_SERVER_V2) { \
+             ac_send_pre_connect_packets((sock), (to)); \
++            if ((sock)->junk_packet_count > 0) { \
++                ac_udp_junk_packets((sock), (to)); \
++            } \
+             if ((sock)->sockflags & SF_UDP_STUFFING) { \
+                 ac_udp_stuffing((sock), (to)); \
+             } \
+diff --git a/src/openvpn/options.c b/src/openvpn/options.c
+index 1eb59d26..7c7e87a5 100644
+--- a/src/openvpn/options.c
++++ b/src/openvpn/options.c
+@@ -3067,6 +3067,21 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
+         if (o->i_packets[i] && ce->proto != PROTO_UDP)
+             msg(M_WARN, "NOTICE: --I1-I5 are suitable only for proto UDP");
+     }
++
++    /* Jc/Jmin/Jmax for TCP could not be used */
++    if ((o->junk_packet_count > 0 || o->junk_packet_min_size > 0 || o->junk_packet_max_size > 0)
++        && ce->proto != PROTO_UDP)
++    {
++        msg(M_WARN, "NOTICE: --Jc/--Jmin/--Jmax are suitable only for proto UDP");
++    }
++
++    /* Validate Jmin <= Jmax if both are specified */
++    if (o->junk_packet_min_size > 0 && o->junk_packet_max_size > 0
++        && o->junk_packet_min_size > o->junk_packet_max_size)
++    {
++        msg(M_WARN, "NOTICE: --Jmin (%d) is greater than --Jmax (%d), Jmin will be used as packet size",
++            o->junk_packet_min_size, o->junk_packet_max_size);
++    }
+ }
+ 
+ static void
+@@ -7732,6 +7747,36 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
+         int idx = p[0][1] - '1'; /* '1'..'5' -> 0..4 */
+         options->i_packets[idx] = p[1];
+     }
++    else if ((streq(p[0], "jc") || streq(p[0], "Jc")) && p[1] && !p[2])
++    {
++        VERIFY_PERMISSION(OPT_P_GENERAL);
++        int val;
++        if (!atoi_constrained(p[1], &val, "Jc", 0, AC_JUNK_PACKET_COUNT_MAX, msglevel))
++        {
++            goto err;
++        }
++        options->junk_packet_count = val;
++    }
++    else if ((streq(p[0], "jmin") || streq(p[0], "Jmin")) && p[1] && !p[2])
++    {
++        VERIFY_PERMISSION(OPT_P_GENERAL);
++        int val;
++        if (!atoi_constrained(p[1], &val, "Jmin", 1, AC_JUNK_PACKET_SIZE_MAX, msglevel))
++        {
++            goto err;
++        }
++        options->junk_packet_min_size = val;
++    }
++    else if ((streq(p[0], "jmax") || streq(p[0], "Jmax")) && p[1] && !p[2])
++    {
++        VERIFY_PERMISSION(OPT_P_GENERAL);
++        int val;
++        if (!atoi_constrained(p[1], &val, "Jmax", 1, AC_JUNK_PACKET_SIZE_MAX, msglevel))
++        {
++            goto err;
++        }
++        options->junk_packet_max_size = val;
++    }
+     else if (streq(p[0], "stale-routes-check") && p[1] && !p[3])
+     {
+         int ageing_time, check_interval;
+diff --git a/src/openvpn/options.h b/src/openvpn/options.h
+index a60041b7..e9a79719 100644
+--- a/src/openvpn/options.h
++++ b/src/openvpn/options.h
+@@ -421,6 +421,11 @@ struct options
+     /* Pre-connect UDP packets (i1..i5): sent before the OpenVPN RESET packet */
+     const char *i_packets[5];
+ 
++    /* Junk packet parameters (Jc/Jmin/Jmax): sent after I1-I5, UDP only */
++    int junk_packet_count;    /* Jc: number of junk packets to send */
++    int junk_packet_min_size; /* Jmin: minimum size of a junk packet (bytes) */
++    int junk_packet_max_size; /* Jmax: maximum size of a junk packet (bytes) */
++
+     /* route management */
+     const char *route_script;
+     const char *route_predown_script;
+diff --git a/src/openvpn/socket.c b/src/openvpn/socket.c
+index c42a83a7..aff89ed9 100644
+--- a/src/openvpn/socket.c
++++ b/src/openvpn/socket.c
+@@ -1414,6 +1414,11 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
+         sock->i_packets[i] = o->i_packets[i];
+     }
+ 
++    /* Junk packet parameters (Jc/Jmin/Jmax) */
++    sock->junk_packet_count    = o->junk_packet_count;
++    sock->junk_packet_min_size = o->junk_packet_min_size;
++    sock->junk_packet_max_size = o->junk_packet_max_size;
++
+     sock->mark = o->mark;
+     sock->bind_dev = o->bind_dev;
+     sock->info.proto = proto;
+diff --git a/src/openvpn/socket.h b/src/openvpn/socket.h
+index 64091d4c..8bab6d0f 100644
+--- a/src/openvpn/socket.h
++++ b/src/openvpn/socket.h
+@@ -221,6 +221,12 @@ struct link_socket
+ 
+     /* Pre-connect UDP packets (i1..i5) */
+     const char *i_packets[AC_AMNEZIA_PRE_CONNECT_COUNT];
++
++    /* Junk packet parameters (Jc/Jmin/Jmax): sent after I1-I5, UDP only */
++    int junk_packet_count;    /* Jc: number of junk packets to send */
++    int junk_packet_min_size; /* Jmin: minimum size in bytes */
++    int junk_packet_max_size; /* Jmax: maximum size in bytes */
++
+     int mark;
+     const char *bind_dev;
+ 
+@@ -729,13 +735,15 @@ link_socket_write_tcp_posix(struct link_socket *sock, struct buffer *buf)
+ static inline ssize_t
+ link_socket_write_udp(struct link_socket *sock, struct buffer *buf, struct link_socket_actual *to)
+ {
+-    /* Anti-censorship: UDP stuffing */
++    /* Anti-censorship: pre-connect and junk packets before RESET */
+     uint8_t ocpode = *BPTR(buf) >> P_OPCODE_SHIFT;
+     if (ocpode == P_CONTROL_HARD_RESET_CLIENT_V2
+         || ocpode == P_CONTROL_HARD_RESET_CLIENT_V3
+         || ocpode == P_CONTROL_HARD_RESET_SERVER_V2)
+     {
+         ac_send_pre_connect_packets(sock, to);
++        if (sock->junk_packet_count > 0)
++            ac_udp_junk_packets(sock, to);
+         if ((sock)->sockflags & SF_UDP_STUFFING)
+             ac_udp_stuffing(sock, to);
+     }
+-- 
+2.55.0
+

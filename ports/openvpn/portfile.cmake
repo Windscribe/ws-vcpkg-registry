@@ -18,6 +18,8 @@ vcpkg_from_github(
     PATCHES
         fix-cmakelist.patch
         anti-censorship.patch
+        0002-Anti-censorship-add-support-for-Amnezia-s-Jc-Jmin-Jm.patch
+        0003-Anti-censorship-introduce-junk-first-option-Jc-befor.patch
         windows-static-openssl.patch
 )
 
