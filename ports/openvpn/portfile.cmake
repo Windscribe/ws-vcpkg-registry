@@ -1,4 +1,8 @@
-set(VCPKG_POLICY_EMPTY_INCLUDE_FOLDER enabled)
+# Windows installs include/openvpn-msg.h for the helper's --msg-channel ABI. Other
+# platforms still ship only the daemon binary.
+if(NOT VCPKG_TARGET_IS_WINDOWS)
+    set(VCPKG_POLICY_EMPTY_INCLUDE_FOLDER enabled)
+endif()
 
 # workaround for universal Mac OS architecture, otherwise configure error
 list(LENGTH VCPKG_OSX_ARCHITECTURES osx_archs_num)
@@ -72,6 +76,9 @@ file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug")
 
 if(VCPKG_TARGET_IS_WINDOWS)
     vcpkg_copy_tools(TOOL_NAMES openvpn AUTO_CLEAN)
+    # Helper speaks OpenVPN's --msg-channel protocol; ship the matching ABI header.
+    file(INSTALL "${SOURCE_PATH}/include/openvpn-msg.h"
+         DESTINATION "${CURRENT_PACKAGES_DIR}/include")
 endif()
 
 file(
