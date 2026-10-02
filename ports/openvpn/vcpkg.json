@@ -1,7 +1,7 @@
 {
   "name": "openvpn",
-  "version": "2.7.5",
-  "port-version": 2,
+  "version": "2.7.7",
+  "port-version": 0,
   "description": "OpenVPN is an open source VPN daemon",
   "homepage": "https://github.com/OpenVPN/openvpn",
   "dependencies": [

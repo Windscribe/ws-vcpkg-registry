@@ -655,7 +655,7 @@ index 05256d61..a60041b7 100644
 +#define OPTION_PARM_SIZE 4096
 +#define OPTION_LINE_SIZE 4096
  
- extern const char title_string[];
+ #define PING_TIMEOUT_MAX 86400 /* one day (in seconds) */
  
 @@ -418,6 +418,9 @@ struct options
      /* socket flags */
