@@ -25,7 +25,6 @@ set(${PORT}_PATCHES
         macdeployqt-symlinks.patch
         moltenvk.patch
         fix-libresolv-test.patch
-        use_inotify_on_freebsd.patch
 )
  
 if(VCPKG_TARGET_IS_WINDOWS AND NOT VCPKG_TARGET_IS_MINGW)
@@ -303,6 +302,7 @@ vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_WIDGETS_OPTIONS
 set(TOOL_NAMES
         androiddeployqt
         androidtestrunner
+        harmonyostestrunner
         cmake_automoc_parser
         moc
         qdbuscpp2xml
@@ -321,6 +321,8 @@ set(TOOL_NAMES
         macdeployqt
         macdeployqt6
         androiddeployqt6
+        harmonydeployqt
+        harmonydeployqt6
         syncqt
         tracepointgen
         qtwaylandscanner
@@ -342,6 +344,7 @@ qt_install_submodule(PATCHES    ${${PORT}_PATCHES}
       			-DFEATURE_printsupport=OFF
       			-DFEATURE_sql=OFF
                         -DFEATURE_testlib=ON
+                        -DFEATURE_framework:BOOL=OFF
 
                         -DFEATURE_force_debug_info:BOOL=ON
                         -DFEATURE_relocatable:BOOL=ON
