@@ -170,6 +170,7 @@ function(qt_cmake_configure)
             -DQT_BUILD_EXAMPLES:BOOL=OFF
             -DQT_BUILD_TESTS:BOOL=OFF
             -DQT_BUILD_BENCHMARKS:BOOL=OFF
+            -DBUILD_WITH_PCH:BOOL=OFF
             ${PERL_OPTION}
             -DINSTALL_BINDIR:STRING=bin
             -DINSTALL_LIBEXECDIR:STRING=bin
