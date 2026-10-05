@@ -1,0 +1,25 @@
+diff --git a/main.go b/main.go
+index c774b64..bc789fc 100644
+--- a/main.go
++++ b/main.go
+@@ -11,6 +11,8 @@ import (
+ 	"golang.org/x/crypto/curve25519"
+ 	"golang.org/x/sys/windows"
+ 
++	"github.com/amnezia-vpn/amneziawg-windows/v3/conf"
++
+ 
+ 	"crypto/rand"
+ 	"log"
+@@ -18,9 +20,10 @@ import (
+ )
+ 
+ //export WireGuardTunnelService
+-func WireGuardTunnelService(confString16 *uint16, nameString16 *uint16) bool {
++func WireGuardTunnelService(confString16 *uint16, nameString16 *uint16, rootDir16 *uint16) bool {
+ 	confStr := windows.UTF16PtrToString(confString16)
+ 	nameStr := windows.UTF16PtrToString(nameString16)
++	conf.PresetRootDirectory(windows.UTF16PtrToString(rootDir16))
+ 	UseFixedGUIDInsteadOfDeterministic = true
+ 	err := Run(confStr,nameStr)
+ 	if err != nil {

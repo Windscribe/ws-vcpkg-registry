@@ -1,0 +1,9 @@
+{
+  "name": "wireguard-windows",
+  "version": "1.1",
+  "port-version": 0,
+  "description": "WireGuard embeddable-dll-service (tunnel.dll) and wireguard-nt driver library (wireguard.dll)",
+  "homepage": "https://git.zx2c4.com/wireguard-windows",
+  "license": "MIT",
+  "supports": "windows & (x64 | arm64)"
+}
