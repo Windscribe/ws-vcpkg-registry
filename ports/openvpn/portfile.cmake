@@ -75,7 +75,7 @@ endif()
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug")
 
 if(VCPKG_TARGET_IS_WINDOWS)
-    vcpkg_copy_tools(TOOL_NAMES openvpn AUTO_CLEAN)
+    vcpkg_copy_tools(TOOL_NAMES openvpn tapctl AUTO_CLEAN)
     # Helper speaks OpenVPN's --msg-channel protocol; ship the matching ABI header.
     file(INSTALL "${SOURCE_PATH}/include/openvpn-msg.h"
          DESTINATION "${CURRENT_PACKAGES_DIR}/include")

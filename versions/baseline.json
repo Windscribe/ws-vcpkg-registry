@@ -1,6 +1,5 @@
 {
   "default": {
-    "7zip": { "baseline": "23.01", "port-version": 1 },
     "amneziawg": { "baseline": "3.1.20260828", "port-version": 0 },
     "boost-context": { "baseline": "1.88.0", "port-version": 0 },
     "boost-process": { "baseline": "1.88.0", "port-version": 0 },
@@ -10,7 +9,7 @@
     "lz4": { "baseline": "1.9.4", "port-version": 1 },
     "lzo": { "baseline": "2.10", "port-version": 9 },
     "miniaudio": { "baseline": "0.11.22", "port-version": 0 },
-    "openvpn": { "baseline": "2.7.7", "port-version": 0 },
+    "openvpn": { "baseline": "2.7.7", "port-version": 1 },
     "openssl": { "baseline": "4.0.3", "port-version": 0 },
     "qtbase": { "baseline": "6.12.0", "port-version": 1 },
     "qtdeclarative": { "baseline": "6.12.0", "port-version": 0 },
