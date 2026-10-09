@@ -352,8 +352,8 @@ function(qt_fixup_and_cleanup)
         file(GLOB _tools_packages "${CURRENT_HOST_INSTALLED_DIR}/share/Qt6*Tools")
         foreach(_tools_pkg IN LISTS _tools_packages)
             get_filename_component(_pkg_name "${_tools_pkg}" NAME)
-            # Qt6Tools and Qt6UiTools are libraries, not host tool packages — skip them
-            if(_pkg_name STREQUAL "Qt6Tools" OR _pkg_name STREQUAL "Qt6UiTools")
+            # Qt6Tools, Qt6UiTools and Qt6ShaderTools are libraries, not host tool packages — skip them
+            if(_pkg_name STREQUAL "Qt6Tools" OR _pkg_name STREQUAL "Qt6UiTools" OR _pkg_name STREQUAL "Qt6ShaderTools")
                 continue()
             endif()
             if(NOT EXISTS "${CURRENT_PACKAGES_DIR}/share/${_pkg_name}"
