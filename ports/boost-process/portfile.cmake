@@ -8,6 +8,7 @@ vcpkg_from_github(
     HEAD_REF master
     PATCHES
         fix-filesystem.patch
+        classic-locale.patch
 )
 
 set(FEATURE_OPTIONS "")

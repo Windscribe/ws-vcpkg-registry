@@ -1,0 +1,17 @@
+diff --git a/include/boost/process/v1/locale.hpp b/include/boost/process/v1/locale.hpp
+index e6b1048..424025b 100644
+--- a/include/boost/process/v1/locale.hpp
++++ b/include/boost/process/v1/locale.hpp
+@@ -78,9 +78,9 @@ inline std::locale default_locale()
+     std::locale global_loc = std::locale();
+     return std::locale(global_loc, new std::codecvt_utf8<wchar_t>);
+ # else  // Other POSIX
+-    // ISO C calls std::locale("") "the locale-specific native environment", and this
+-    // locale is the default for many POSIX-based operating systems such as Linux.
+-    return std::locale("");
++    // std::locale("") throws when LC_ALL or LANG names a locale that is not installed, and that would
++    // make every process launch fail. The default locale never throws.
++    return std::locale();
+ # endif
+ }
+ 
