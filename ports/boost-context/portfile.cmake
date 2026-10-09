@@ -9,10 +9,8 @@ if (VCPKG_OSX_ARCHITECTURES_ORIGINAL MATCHES "arm64" AND VCPKG_OSX_ARCHITECTURES
         OUT_SOURCE_PATH SOURCE_PATH
         REPO boostorg/context
         REF boost-${VERSION}
-        SHA512 ce616623d95e0c394a68e962c52b11875a216af10597fcc3a2bf3fb7b13dcc47fa7f5ebf37c9bcf2fc8b2edacbf82d149b32f55cfda4c41bdca18fe3c3337b50
+        SHA512 56fda97c398cf4d3d40d54da5e50634035bb37c806bc68aba1a28b3af6c3cf3551ddf17c7e9adec29734bf1567dbc9bfc8c0bf4da632a29297f316db095b9aa8
         HEAD_REF master
-        PATCHES
-            marmasm.patch
     )
 
     set(FEATURE_OPTIONS "")
@@ -27,10 +25,8 @@ if (VCPKG_OSX_ARCHITECTURES_ORIGINAL MATCHES "arm64" AND VCPKG_OSX_ARCHITECTURES
         OUT_SOURCE_PATH SOURCE_PATH
         REPO boostorg/context
         REF boost-${VERSION}
-        SHA512 ce616623d95e0c394a68e962c52b11875a216af10597fcc3a2bf3fb7b13dcc47fa7f5ebf37c9bcf2fc8b2edacbf82d149b32f55cfda4c41bdca18fe3c3337b50
+        SHA512 56fda97c398cf4d3d40d54da5e50634035bb37c806bc68aba1a28b3af6c3cf3551ddf17c7e9adec29734bf1567dbc9bfc8c0bf4da632a29297f316db095b9aa8
         HEAD_REF master
-        PATCHES
-            marmasm.patch
     )
 
     set(FEATURE_OPTIONS "")
@@ -64,10 +60,8 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO boostorg/context
     REF boost-${VERSION}
-    SHA512 ce616623d95e0c394a68e962c52b11875a216af10597fcc3a2bf3fb7b13dcc47fa7f5ebf37c9bcf2fc8b2edacbf82d149b32f55cfda4c41bdca18fe3c3337b50
+    SHA512 56fda97c398cf4d3d40d54da5e50634035bb37c806bc68aba1a28b3af6c3cf3551ddf17c7e9adec29734bf1567dbc9bfc8c0bf4da632a29297f316db095b9aa8
     HEAD_REF master
-    PATCHES
-        marmasm.patch
 )
 
 set(FEATURE_OPTIONS "")

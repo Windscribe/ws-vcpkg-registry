@@ -1,5 +1,5 @@
 diff --git a/scripts/toolchains/ios.cmake b/scripts/toolchains/ios.cmake
-index a5395c7a0f..f38fe3907b 100644
+index 6148045..800b997 100644
 --- a/scripts/toolchains/ios.cmake
 +++ b/scripts/toolchains/ios.cmake
 @@ -23,6 +23,14 @@ if(NOT _VCPKG_IOS_TOOLCHAIN)
