@@ -1,7 +1,7 @@
 {
   "name": "amneziawg",
   "version": "3.1.20260828",
-  "port-version": 0,
+  "port-version": 1,
   "description": "AmneziaWG: tunnel DLL from amneziawg-windows on Windows, amneziawg-go userspace daemon on macOS and Linux",
   "homepage": "https://github.com/amnezia-vpn",
   "license": "MIT",

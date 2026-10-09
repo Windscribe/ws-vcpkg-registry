@@ -83,6 +83,9 @@ else()
         set(ENV{GOOS} darwin)
     else()
         set(ENV{GOOS} linux)
+        # vcpkg patchelfs the RPATH of every dynamic ELF in tools/, which leaves Go binaries segfaulting at startup.
+        # A static binary has no .dynamic section, so the fixup skips it.
+        set(ENV{CGO_ENABLED} 0)
     endif()
 
     # ws-universal-osx lists several architectures; each is built separately and merged with lipo.

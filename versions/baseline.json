@@ -1,6 +1,6 @@
 {
   "default": {
-    "amneziawg": { "baseline": "3.1.20260828", "port-version": 0 },
+    "amneziawg": { "baseline": "3.1.20260828", "port-version": 1 },
     "boost-context": { "baseline": "1.88.0", "port-version": 0 },
     "boost-process": { "baseline": "1.88.0", "port-version": 0 },
     "c-ares": { "baseline": "1.34.7", "port-version": 0 },
