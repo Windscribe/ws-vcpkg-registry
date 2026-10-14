@@ -5,7 +5,7 @@ set(VCPKG_LIBRARY_LINKAGE static)
 set(VCPKG_CMAKE_SYSTEM_NAME Darwin)
 set(VCPKG_OSX_ARCHITECTURES x86_64)
 
-set(VCPKG_OSX_DEPLOYMENT_TARGET 13.0)
+set(VCPKG_OSX_DEPLOYMENT_TARGET 14.4)
 set(VCPKG_BUILD_TYPE release)
 
 # CMake 4 no longer sets CMAKE_OSX_SYSROOT on its own, so ports built with makefiles (e.g. OpenSSL)
