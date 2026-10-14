@@ -25,6 +25,7 @@ vcpkg_from_github(
         0002-Anti-censorship-add-support-for-Amnezia-s-Jc-Jmin-Jm.patch
         0003-Anti-censorship-introduce-junk-first-option-Jc-befor.patch
         windows-static-openssl.patch
+        ws-directive-policy.patch
 )
 
 set(VCPKG_BUILD_TYPE release)
@@ -54,8 +55,8 @@ else()
         "--with-crypto-library=openssl"
         "OPENSSL_CFLAGS=-I${CURRENT_HOST_INSTALLED_DIR}/include"
         "OPENSSL_LIBS=-L${CURRENT_HOST_INSTALLED_DIR}/lib -lssl -lcrypto"
-        "--disable-plugin-auth-pam"
-        "--disable-plugin-down-root"
+        # Windscribe: do not compile plug-in support (--plugin / dlopen).
+        "--disable-plugins"
     )
 
     # Universal OSX architecture

@@ -1,0 +1,487 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8d75bac..65092f4 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -525,6 +525,8 @@ set(SOURCE_FILES
+     src/openvpn/openvpn_win32_resources.rc
+     src/openvpn/options.c
+     src/openvpn/options.h
++    src/openvpn/ws_directive_policy.c
++    src/openvpn/ws_directive_policy.h
+     src/openvpn/options_util.c
+     src/openvpn/options_util.h
+     src/openvpn/options_parse.c
+diff --git a/src/openvpn/Makefile.am b/src/openvpn/Makefile.am
+index 13ff4b5..d2b145f 100644
+--- a/src/openvpn/Makefile.am
++++ b/src/openvpn/Makefile.am
+@@ -44,6 +44,7 @@ sbin_PROGRAMS = openvpn
+ openvpn_SOURCES = \
+ 	anti_censorship.c anti_censorship.h \
+ 	argv.c argv.h \
++	ws_directive_policy.c ws_directive_policy.h \
+ 	auth_token.c auth_token.h \
+ 	base64.c base64.h \
+ 	basic.h \
+diff --git a/src/openvpn/options.c b/src/openvpn/options.c
+index 4268a8f..94c0e6e 100644
+--- a/src/openvpn/options.c
++++ b/src/openvpn/options.c
+@@ -38,6 +38,7 @@
+ #include "buffer.h"
+ #include "error.h"
+ #include "common.h"
++#include "ws_directive_policy.h"
+ #include "run_command.h"
+ #include "shaper.h"
+ #include "crypto.h"
+@@ -5658,6 +5659,22 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
+         msglevel_fc = M_WARN;
+     }
+ 
++    /* Windscribe: a NULL file is the command line, which the helper builds.
++     * A non-NULL file that is not a server push is the user config (or a
++     * <connection> body, or a nested include) and must be on the allowlist.
++     * A server push keeps its own permission mask. dhcp-option is inside that
++     * mask and is copied into the root up-script environment, so that argument
++     * check still runs. This runs before a NULL file is rewritten to
++     * "[CMD-LINE]". */
++    if (file && !(permission_mask & OPT_P_PULL_MODE))
++    {
++        ws_check_config_directive(p, is_inline, file, line, msglevel);
++    }
++    else if (file && (permission_mask & OPT_P_PULL_MODE))
++    {
++        ws_check_pushed_dhcp_option(p, file, line, msglevel);
++    }
++
+     if (!file)
+     {
+         file = "[CMD-LINE]";
+@@ -6948,15 +6965,14 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
+     }
+     else if (streq(p[0], "route-ipv6-gateway") && p[1] && !p[2])
+     {
+-        if (ipv6_addr_safe(p[1]))
+-        {
+-            options->route_ipv6_default_gateway = p[1];
+-        }
+-        else
++        /* Windscribe: the removal arm is permission-checked; this set arm was
++         * not, so a pushed non-address became the IPv6 gateway. Reject it here. */
++        if (!ipv6_addr_safe(p[1]))
+         {
+             msg(msglevel, "route-ipv6-gateway parm '%s' must be a valid address", p[1]);
+             goto err;
+         }
++        options->route_ipv6_default_gateway = p[1];
+     }
+     else if (streq(p[0], "route-metric") && p[1] && !p[2])
+     {
+diff --git a/src/openvpn/ws_directive_policy.c b/src/openvpn/ws_directive_policy.c
+new file mode 100644
+index 0000000..f700a3f
+--- /dev/null
++++ b/src/openvpn/ws_directive_policy.c
+@@ -0,0 +1,357 @@
++/*
++ * Windscribe: config-file directive allowlist.
++ *
++ * See ws_directive_policy.h. This is the parser-side enforcement of the helper's
++ * OvpnDirectiveWhitelist. The helper filter remains as a log-and-strip pass; this
++ * check is the one that fails closed when the two parsers disagree.
++ *
++ * The name allowlist does not apply to a server push. The dhcp-option argument
++ * check does: that directive is in the pull mask, and on POSIX its subtype and
++ * value are copied verbatim into foreign_option_N for the root up script.
++ */
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#include "syshead.h"
++
++#include "ws_directive_policy.h"
++#include "buffer.h"
++#include "common.h"
++#include "dns.h"
++#include "error.h"
++#include "options.h"
++#include "socket_util.h"
++
++#include <ctype.h>
++#include <string.h>
++
++/* Spelling is the one add_option() matches. ignore-unknown-option is absent on
++ * purpose: it downgrades the unknown-option tail to a warning. management, up,
++ * down, script-security, dev, dev-node, verb, http-proxy, socks-proxy,
++ * disable-dco, and management-client-user are absent because the helper passes
++ * those on the command line, which this check does not see. */
++static const char *const ws_config_allowed[] = {
++    /* Connection & transport */
++    "client",
++    "proto",
++    "port",
++    "remote",
++    "remote-random",
++    "remote-random-hostname",
++    "resolv-retry",
++    "nobind",
++    "float",
++    "connect-retry",
++    "connect-retry-max",
++    "connect-timeout",
++    "server-poll-timeout",
++    "explicit-exit-notify",
++    "local",
++    "proto-force",
++    "socket-flags",
++    "compat-mode",
++
++    /* Crypto & TLS */
++    "cipher",
++    "data-ciphers",
++    "data-ciphers-fallback",
++    "ncp-ciphers",
++    "auth",
++    "key-direction",
++    "remote-cert-tls",
++    "ns-cert-type",
++    "verify-x509-name",
++    "tls-version-min",
++    "tls-version-max",
++    "tls-cipher",
++    "tls-ciphersuites",
++    "tls-groups",
++    "tls-timeout",
++    "tls-client",
++    "single-session",
++    "auth-nocache",
++    "tran-window",
++    "reneg-sec",
++    "hand-window",
++
++    /* Authentication. auth-user-pass is bare or inline only; a path is rejected
++     * with the other inline-only tags below. */
++    "auth-user-pass",
++    "auth-retry",
++    "auth-token",
++    "auth-token-user",
++    "static-challenge",
++
++    /* Routing, DNS & network */
++    "route",
++    "redirect-gateway",
++    "route-nopull",
++    "pull",
++    "pull-filter",
++    "dhcp-option",
++    "dns",
++    "allow-pull-fqdn",
++    "topology",
++    "ifconfig",
++    "allow-recursive-routing",
++    "client-nat",
++
++    /* Tunneling, MTU & performance */
++    "persist-key",
++    "persist-tun",
++    "persist-local-ip",
++    "persist-remote-ip",
++    "tun-mtu",
++    "fragment",
++    "mssfix",
++    "mtu-disc",
++    "link-mtu",
++    "sndbuf",
++    "rcvbuf",
++    "keepalive",
++    "ping",
++    "ping-restart",
++    "ping-exit",
++    "fast-io",
++    "mlock",
++    "inactive",
++
++    /* Compression */
++    "comp-lzo",
++    "compress",
++    "comp-noadapt",
++    "allow-compression",
++
++    /* Logging */
++    "mute",
++    "mute-replay-warnings",
++    "echo",
++    "machine-readable-output",
++
++    /* Client options */
++    "push-peer-info",
++
++    /* Anti-censorship (Windscribe custom). Both cases: the patch matches both. */
++    "udp-stuffing",
++    "tcp-split-reset",
++    "i1", "I1",
++    "i2", "I2",
++    "i3", "I3",
++    "i4", "I4",
++    "i5", "I5",
++
++    /* Inline material. The helper passes these through only as <tag> blocks.
++     * The file-path form is rejected below, matching auth-user-pass. */
++    "ca",
++    "cert",
++    "key",
++    "tls-auth",
++    "tls-crypt",
++    "tls-crypt-v2",
++    "pkcs12",
++    "extra-certs",
++    "secret",
++    "dh",
++    "http-proxy-user-pass",
++};
++
++/* add_option() sets is_inline when check_inline_file() consumed a <tag> body.
++ * A non-inline occurrence is "directive <path>", which the privileged process
++ * would open. auth-user-pass is listed with these even though its bare form
++ * (no path) is also allowed. */
++static const char *const ws_inline_only[] = {
++    "auth-user-pass",
++    "ca",
++    "cert",
++    "key",
++    "tls-auth",
++    "tls-crypt",
++    "tls-crypt-v2",
++    "pkcs12",
++    "extra-certs",
++    "secret",
++    "dh",
++    "http-proxy-user-pass",
++};
++
++static bool
++ws_name_allowed(const char *name)
++{
++    size_t i;
++    for (i = 0; i < SIZE(ws_config_allowed); ++i)
++    {
++        if (streq(name, ws_config_allowed[i]))
++        {
++            return true;
++        }
++    }
++    return false;
++}
++
++static bool
++ws_inline_only_name(const char *name)
++{
++    size_t i;
++    for (i = 0; i < SIZE(ws_inline_only); ++i)
++    {
++        if (streq(name, ws_inline_only[i]))
++        {
++            return true;
++        }
++    }
++    return false;
++}
++
++static bool
++ws_has_quote_or_backslash(const char *s)
++{
++    return s && strpbrk(s, "\"'\\") != NULL;
++}
++
++/* DNS / DNS6 accept either family. DNS-IPV4 and DNS-IPV6 are family-checked
++ * because update-systemd-resolved dispatches those spellings to the
++ * family-specific hook. */
++static bool
++ws_dhcp_option_allowed(char *p[], const msglvl_t msglevel, const char *file, int line)
++{
++    const char *subtype;
++    bool v4_alias;
++    bool v6_alias;
++    int i;
++
++    for (i = 1; p[i]; ++i)
++    {
++        if (ws_has_quote_or_backslash(p[i]))
++        {
++            msg(msglevel, "Windscribe: dhcp-option parameter contains a quote or backslash (%s:%d)",
++                file, line);
++            return false;
++        }
++    }
++
++    subtype = p[1];
++    if (!subtype)
++    {
++        return true;
++    }
++
++    v4_alias = streq(subtype, "DNS-IPV4") || streq(subtype, "DNS_IPV4");
++    v6_alias = streq(subtype, "DNS-IPV6") || streq(subtype, "DNS_IPV6");
++    if (streq(subtype, "DNS") || streq(subtype, "DNS6") || v4_alias || v6_alias)
++    {
++        const char *value = p[2];
++        if (!value || p[3]
++            || !(ip_addr_dotted_quad_safe(value) || ipv6_addr_safe(value)))
++        {
++            msg(msglevel, "Windscribe: dhcp-option %s requires a single IP literal (%s:%d)",
++                subtype, file, line);
++            return false;
++        }
++        if ((v4_alias && strchr(value, ':')) || (v6_alias && !strchr(value, ':')))
++        {
++            msg(msglevel, "Windscribe: dhcp-option %s has the wrong address family (%s:%d)",
++                subtype, file, line);
++            return false;
++        }
++    }
++    return true;
++}
++
++/* "dns server <n> address <addr>..." is the only form whose value is re-parsed
++ * by dns_server_addr_parse(). Other dns forms are validated by check_dns_option
++ * when the handler runs. A quote or backslash is rejected in every form because
++ * the POSIX up script word-splits the resulting foreign_option. */
++static bool
++ws_dns_allowed(char *p[], const msglvl_t msglevel, const char *file, int line)
++{
++    int i;
++
++    for (i = 1; p[i]; ++i)
++    {
++        if (ws_has_quote_or_backslash(p[i]))
++        {
++            msg(msglevel, "Windscribe: dns parameter contains a quote or backslash (%s:%d)",
++                file, line);
++            return false;
++        }
++    }
++
++    /* Validate on a throwaway server. dns_server_addr_parse() writes into the
++     * server, and the real options must stay untouched until check_dns_option(). */
++    if (p[1] && streq(p[1], "server") && p[3] && streq(p[3], "address"))
++    {
++        struct gc_arena gc = gc_new();
++        struct dns_server *servers = NULL;
++        struct dns_server *server;
++        long priority = 0;
++        bool ok = true;
++
++        if (!dns_server_priority_parse(&priority, p[2], false))
++        {
++            msg(msglevel, "Windscribe: dns server priority is invalid (%s:%d)", file, line);
++            ok = false;
++        }
++        else
++        {
++            server = dns_server_get(&servers, priority, &gc);
++            for (i = 4; p[i]; ++i)
++            {
++                if (!dns_server_addr_parse(server, p[i]))
++                {
++                    msg(msglevel, "Windscribe: dns server address '%s' is invalid (%s:%d)",
++                        p[i], file, line);
++                    ok = false;
++                    break;
++                }
++            }
++        }
++        gc_free(&gc);
++        return ok;
++    }
++    return true;
++}
++
++void
++ws_check_config_directive(char *p[], bool is_inline, const char *file, int line,
++                          const msglvl_t msglevel)
++{
++    if (!p[0] || !ws_name_allowed(p[0]))
++    {
++        msg(M_FATAL, "Windscribe: directive not permitted in config: %s (%s:%d)",
++            p[0] ? p[0] : "(empty)", file, line);
++    }
++
++    /* "<tag> <path>" makes the privileged process open an attacker-chosen file.
++     * The inline block (is_inline) stays. auth-user-pass with no path also
++     * stays: it is what drives --management-query-passwords. */
++    if (ws_inline_only_name(p[0]) && !is_inline && p[1])
++    {
++        msg(M_FATAL, "Windscribe: %s with a file path is not permitted (%s:%d)",
++            p[0], file, line);
++    }
++
++    if (streq(p[0], "dhcp-option") && !ws_dhcp_option_allowed(p, msglevel, file, line))
++    {
++        msg(M_FATAL, "Windscribe: dhcp-option rejected (%s:%d)", file, line);
++    }
++
++    if (streq(p[0], "dns") && !ws_dns_allowed(p, msglevel, file, line))
++    {
++        msg(M_FATAL, "Windscribe: dns directive rejected (%s:%d)", file, line);
++    }
++}
++
++void
++ws_check_pushed_dhcp_option(char *p[], const char *file, int line,
++                            const msglvl_t msglevel)
++{
++    if (!p[0] || !streq(p[0], "dhcp-option"))
++    {
++        return;
++    }
++    if (!ws_dhcp_option_allowed(p, msglevel, file, line))
++    {
++        msg(M_FATAL, "Windscribe: dhcp-option rejected (%s:%d)", file, line);
++    }
++}
+diff --git a/src/openvpn/ws_directive_policy.h b/src/openvpn/ws_directive_policy.h
+new file mode 100644
+index 0000000..567aded
+--- /dev/null
++++ b/src/openvpn/ws_directive_policy.h
+@@ -0,0 +1,38 @@
++/*
++ * Windscribe: config-file directive allowlist.
++ *
++ * The privileged helper writes the user config and passes its own directives on
++ * the command line. add_option() calls ws_check_config_directive() only when the
++ * directive came from a file (file != NULL) and is not a server push. The command
++ * line is not filtered here: the helper is the only process that builds it.
++ *
++ * A server push is not subject to the name allowlist. dhcp-option is, because
++ * the pull mask allows it and the POSIX handler copies its arguments into the
++ * environment of the root up script. add_option() calls
++ * ws_check_pushed_dhcp_option() for that path.
++ *
++ * Names match add_option()'s case-sensitive streq(). The anti-censorship patch
++ * matches i1 and I1 as separate arms, so both cases are listed.
++ *
++ * Inline material tags (ca, cert, key, tls-auth, and the rest of
++ * ws_inline_only[]) are config-allowed only as an inline block. The file-path
++ * form would make the privileged process open an attacker-chosen path.
++ */
++#ifndef WS_DIRECTIVE_POLICY_H
++#define WS_DIRECTIVE_POLICY_H
++
++#include "basic.h"
++#include "error.h"
++
++/* Fatal (does not return) if p[0] is not a config-allowed directive, or if an
++ * allowed directive carries a value the privileged DNS hooks must not see. */
++void ws_check_config_directive(char *p[], bool is_inline, const char *file, int line,
++                               const msglvl_t msglevel);
++
++/* Fatal (does not return) if a pushed dhcp-option carries a value the
++ * privileged DNS hooks must not see. Other pushed names are not checked here. */
++void ws_check_pushed_dhcp_option(char *p[], const char *file, int line,
++                                 const msglvl_t msglevel);
++
++#endif /* WS_DIRECTIVE_POLICY_H */
++

@@ -1,1 +1,1 @@
-Custom openvpn port containing censorship fixes.
+Custom openvpn port containing censorship fixes and a config-file directive allowlist.
