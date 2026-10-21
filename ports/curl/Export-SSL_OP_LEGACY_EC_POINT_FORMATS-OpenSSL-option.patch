@@ -1,8 +1,8 @@
 diff --git a/include/curl/curl.h b/include/curl/curl.h
-index 19a02ed..9c3711e 100644
+index 5442865..ae4aa2a 100644
 --- a/include/curl/curl.h
 +++ b/include/curl/curl.h
-@@ -965,6 +965,7 @@ typedef enum {
+@@ -975,6 +975,7 @@ typedef enum {
  
  #define CURLSSLOPT_TLSEXT_PADDING (1<<7)
  #define CURLSSLOPT_TLSEXT_PADDING_SUPER (1<<8)
@@ -11,15 +11,15 @@ index 19a02ed..9c3711e 100644
  /* The default connection attempt delay in milliseconds for happy eyeballs.
     CURLOPT_HAPPY_EYEBALLS_TIMEOUT_MS.3 and happy-eyeballs-timeout-ms.d document
 diff --git a/lib/vtls/openssl.c b/lib/vtls/openssl.c
-index 67757e6..a5b3325 100644
+index 8a92fb8..45dafb4 100644
 --- a/lib/vtls/openssl.c
 +++ b/lib/vtls/openssl.c
-@@ -3777,6 +3777,11 @@ CURLcode Curl_ossl_ctx_init(struct ossl_ctx *octx,
+@@ -3828,6 +3828,11 @@ CURLcode Curl_ossl_ctx_init(struct ossl_ctx *octx,
      ctx_options |= (ctx_option_t)SSL_OP_TLSEXT_PADDING_SUPER;
  #endif
  
 +#ifdef SSL_OP_LEGACY_EC_POINT_FORMATS
-+  if(ssl_config->op_legacy_ec_point_formats)
++  if(conn_config->op_legacy_ec_point_formats)
 +    ctx_options |= (ctx_option_t)SSL_OP_LEGACY_EC_POINT_FORMATS;
 +#endif
 +
@@ -27,26 +27,35 @@ index 67757e6..a5b3325 100644
    switch(ssl_version_min) {
    case CURL_SSLVERSION_SSLv2:
 diff --git a/lib/vtls/vtls_config.c b/lib/vtls/vtls_config.c
-index 7823bda..1bbba8f 100644
+index 973afe6..a31cdc2 100644
 --- a/lib/vtls/vtls_config.c
 +++ b/lib/vtls/vtls_config.c
-@@ -250,6 +250,7 @@ static void ssl_easy_config_compl_options(struct Curl_peer *origin,
-   sslc->earlydata = !!(options & CURLSSLOPT_EARLYDATA);
-   sslc->tlsext_padding = !!(options & CURLSSLOPT_TLSEXT_PADDING);
-   sslc->tlsext_padding_super = !!(options & CURLSSLOPT_TLSEXT_PADDING_SUPER);
-+  sslc->op_legacy_ec_point_formats = !!(options & CURLSSLOPT_OP_LEGACY_EC_POINT_FORMATS);
+@@ -215,6 +215,7 @@ static bool clone_ssl_primary_config(struct ssl_filter_config *source,
+   dest->revoke_best_effort = source->revoke_best_effort;
+   dest->tlsext_padding = source->tlsext_padding;
+   dest->tlsext_padding_super = source->tlsext_padding_super;
++  dest->op_legacy_ec_point_formats = source->op_legacy_ec_point_formats;
  
-   sslc->auto_client_cert = Curl_peer_equal(origin, initial_origin) &&
-                            !!(options & CURLSSLOPT_AUTO_CLIENT_CERT);
+   CLONE_BLOB(cert_blob);
+   CLONE_BLOB(ca_info_blob);
+@@ -265,6 +266,8 @@ ssl_easy_config_compl_options(struct Curl_peer *origin,
+   primary->tlsext_padding = !!(options & CURLSSLOPT_TLSEXT_PADDING);
+   primary->tlsext_padding_super =
+     !!(options & CURLSSLOPT_TLSEXT_PADDING_SUPER);
++  primary->op_legacy_ec_point_formats =
++    !!(options & CURLSSLOPT_OP_LEGACY_EC_POINT_FORMATS);
+ }
+ 
+ static char *ssl_easy_steal(struct Curl_easy *data, enum dupstring id)
 diff --git a/lib/vtls/vtls_config.h b/lib/vtls/vtls_config.h
-index 0e2125b..68cc1a3 100644
+index c2cf82d..7af5914 100644
 --- a/lib/vtls/vtls_config.h
 +++ b/lib/vtls/vtls_config.h
-@@ -82,6 +82,7 @@ struct ssl_config_data {
-   BIT(custom_cablob); /* application has set custom CA blob */
+@@ -74,6 +74,7 @@ struct ssl_filter_config {
+                               list errors */
    BIT(tlsext_padding);
    BIT(tlsext_padding_super);
 +  BIT(op_legacy_ec_point_formats);
  };
  
- struct ssl_general_config {
+ struct ssl_easy_config {
