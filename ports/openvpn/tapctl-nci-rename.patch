@@ -1,0 +1,66 @@
+diff --git a/src/tapctl/tap.c b/src/tapctl/tap.c
+index 769df6c..8a430bc 100644
+--- a/src/tapctl/tap.c
++++ b/src/tapctl/tap.c
+@@ -964,6 +964,34 @@ ExecNetsh(PWSTR cmdline)
+     return exit_code;
+ }
+ 
++/*
++ * Windscribe: rename the adapter with NciSetConnectionName() from nci.dll, as Wintun does.
++ * netsh fails with exit code 1 on some systems, even for physical adapters.
++ *
++ * nci.dll and its dependencies are loaded from System32 only. The module is never freed,
++ * because tapctl exits shortly after the rename.
++ */
++typedef DWORD(WINAPI *NciSetConnectionNameFn)(_In_ const GUID *pGuid, _In_z_ LPCWSTR szName);
++
++static DWORD
++nci_set_connection_name(_In_ LPCGUID pguidAdapter, _In_ LPCWSTR szName)
++{
++    HMODULE hNci = LoadLibraryExW(L"nci.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
++    if (hNci == NULL)
++    {
++        return GetLastError();
++    }
++
++    NciSetConnectionNameFn pfnSetName =
++        (NciSetConnectionNameFn)GetProcAddress(hNci, "NciSetConnectionName");
++    if (pfnSetName == NULL)
++    {
++        return GetLastError();
++    }
++
++    return pfnSetName(pguidAdapter, szName);
++}
++
+ DWORD
+ tap_set_adapter_name(_In_ LPCGUID pguidAdapter, _In_ LPCWSTR szName, _In_ BOOL bSilent)
+ {
+@@ -976,6 +1004,14 @@ tap_set_adapter_name(_In_ LPCGUID pguidAdapter, _In_ LPCWSTR szName, _In_ BOOL b
+         return ERROR_BAD_ARGUMENTS;
+     }
+ 
++    dwResult = nci_set_connection_name(pguidAdapter, szName);
++    if (dwResult == ERROR_SUCCESS)
++    {
++        return ERROR_SUCCESS;
++    }
++    SetLastError(dwResult);
++    msg(M_WARN | M_ERRNO, "%s: NciSetConnectionName failed, falling back to netsh", __FUNCTION__);
++
+     /* Get the device class GUID as string. */
+     LPOLESTR szDevClassNetId = NULL;
+     StringFromIID((REFIID)&GUID_DEVCLASS_NET, &szDevClassNetId);
+@@ -1023,8 +1059,9 @@ tap_set_adapter_name(_In_ LPCGUID pguidAdapter, _In_ LPCWSTR szName, _In_ BOOL b
+ 
+     if (dwResult != ERROR_SUCCESS)
+     {
+-        SetLastError(dwResult);
+-        msg(msg_flag, "%s: Error renaming adapter", __FUNCTION__);
++        /* dwResult is the netsh exit code, not a Win32 error. */
++        msg(msg_flag & ~M_ERRNO, "%s: Error renaming adapter (netsh exited with code %lu)",
++            __FUNCTION__, dwResult);
+         goto cleanup_hKey;
+     }
+ 

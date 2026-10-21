@@ -26,6 +26,7 @@ vcpkg_from_github(
         0003-Anti-censorship-introduce-junk-first-option-Jc-befor.patch
         windows-static-openssl.patch
         ws-directive-policy.patch
+        tapctl-nci-rename.patch
 )
 
 set(VCPKG_BUILD_TYPE release)
