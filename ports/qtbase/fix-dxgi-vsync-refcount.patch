@@ -1,0 +1,28 @@
+diff --git a/src/gui/rhi/qdxgivsyncservice.cpp b/src/gui/rhi/qdxgivsyncservice.cpp
+index 31a9682..90b5899 100644
+--- a/src/gui/rhi/qdxgivsyncservice.cpp
++++ b/src/gui/rhi/qdxgivsyncservice.cpp
+@@ -165,15 +165,19 @@ void QDxgiVSyncService::beginFrame(LUID)
+ 
+     if (dxgiFactory && !dxgiFactory->IsCurrent()) {
+         qCDebug(lcQpaScreenUpdates, "QDxgiVSyncService: DXGI Factory is no longer Current");
+-        QVarLengthArray<LUID, 8> luids;
++        // Re-reference each adapter as many times as before, otherwise the next derefAdapter()
++        // stops vsync threads that registered windows still depend on.
++        QVarLengthArray<std::pair<LUID, int>, 8> luids;
+         for (auto it = adapters.begin(), end = adapters.end(); it != end; ++it)
+-            luids.append(it->luid);
++            luids.append({ it->luid, it->ref });
+         for (auto it = windows.begin(), end = windows.end(); it != end; ++it)
+             cleanupWindowData(&*it);
+         lock.unlock();
+         teardownDxgi();
+-        for (LUID luid : luids)
+-            refAdapter(luid);
++        for (const auto &[luid, ref] : luids) {
++            for (int i = 0; i < ref; ++i)
++                refAdapter(luid);
++        }
+         lock.relock();
+         for (auto it = windows.begin(), end = windows.end(); it != end; ++it)
+             updateWindowData(it.key(), &*it);
