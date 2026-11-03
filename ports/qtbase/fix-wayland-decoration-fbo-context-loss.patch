@@ -1,0 +1,34 @@
+diff --git a/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandeglwindow.cpp b/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandeglwindow.cpp
+index e1a09e5..d1ff777 100644
+--- a/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandeglwindow.cpp
++++ b/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandeglwindow.cpp
+@@ -160,7 +160,7 @@ GLuint QWaylandEglWindow::contentFBO() const
+     if (!decoration())
+         return 0;
+ 
+-    if (m_resize || !m_contentFBO) {
++    if (m_resize || !m_contentFBO || !m_contentFBO->isValid()) {
+         QOpenGLFramebufferObject *old = m_contentFBO;
+         QSize fboSize = geometry().size() * scale();
+         m_contentFBO = new QOpenGLFramebufferObject(fboSize.width(), fboSize.height(), QOpenGLFramebufferObject::CombinedDepthStencil);
+diff --git a/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandeglwindow_p.h b/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandeglwindow_p.h
+index 38f4773..511a791 100644
+--- a/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandeglwindow_p.h
++++ b/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandeglwindow_p.h
+@@ -6,6 +6,7 @@
+ 
+ #include <QtWaylandClient/private/qwaylandwindow_p.h>
+ #include "qwaylandeglclientbufferintegration_p.h"
++#include <QOpenGLFramebufferObject>
+ 
+ QT_BEGIN_NAMESPACE
+ 
+@@ -32,7 +33,7 @@ public:
+     EGLSurface eglSurface() const;
+     GLuint contentFBO() const;
+     GLuint contentTexture() const;
+-    bool needToUpdateContentFBO() const { return decoration() && (m_resize || !m_contentFBO); }
++    bool needToUpdateContentFBO() const { return decoration() && (m_resize || !m_contentFBO || !m_contentFBO->isValid()); }
+ 
+     void bindContentFBO();
+ 

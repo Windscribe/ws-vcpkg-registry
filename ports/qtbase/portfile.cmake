@@ -26,6 +26,7 @@ set(${PORT}_PATCHES
         moltenvk.patch
         fix-libresolv-test.patch
         fix-dxgi-vsync-refcount.patch
+        fix-wayland-decoration-fbo-context-loss.patch
 )
  
 if(VCPKG_TARGET_IS_WINDOWS AND NOT VCPKG_TARGET_IS_MINGW)
