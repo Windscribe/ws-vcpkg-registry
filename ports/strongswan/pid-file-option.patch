@@ -1,0 +1,120 @@
+--- a/src/charon/charon.c
++++ b/src/charon/charon.c
+@@ -41,7 +41,7 @@
+ /**
+  * PID file, in which charon stores its process id
+  */
+-#define PID_FILE IPSEC_PIDDIR "/charon.pid"
++static char *pid_file = NULL;
+ 
+ /**
+  * Default user and group
+@@ -191,7 +191,7 @@
+ #ifndef WIN32
+ 	flags |= O_NOFOLLOW;
+ #endif
+-	fd = open(PID_FILE, O_RDONLY | flags);
++	fd = open(pid_file, O_RDONLY | flags);
+ 	if (fd != -1)
+ 	{
+ 		if (fstat(fd, &stb) == 0 && S_ISREG(stb.st_mode))
+@@ -217,7 +217,7 @@
+ 			}
+ 			if (pid && pid != getpid() && kill(pid, 0) == 0)
+ 			{
+-				DBG1(DBG_DMN, "charon already running ('"PID_FILE"' exists)");
++				DBG1(DBG_DMN, "charon already running ('%s' exists)", pid_file);
+ 				return TRUE;
+ 			}
+ 		}
+@@ -229,21 +229,21 @@
+ 
+ 	if (fd != -1 || errno != ENOENT)
+ 	{
+-		DBG1(DBG_DMN, "removing pidfile '"PID_FILE"', process not running");
+-		unlink(PID_FILE);
++		DBG1(DBG_DMN, "removing pidfile '%s', process not running", pid_file);
++		unlink(pid_file);
+ 	}
+ 
+ 	/* create new pidfile securely without following symlinks */
+-	fd = open(PID_FILE, O_CREAT | O_EXCL | O_WRONLY, 0644);
++	fd = open(pid_file, O_CREAT | O_EXCL | O_WRONLY, 0644);
+ 	if (fd == -1)
+ 	{
+-		DBG1(DBG_DMN, "unable to create pidfile '"PID_FILE"'");
++		DBG1(DBG_DMN, "unable to create pidfile '%s'", pid_file);
+ 		return TRUE;
+ 	}
+ 	if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1)
+ 	{
+-		DBG1(DBG_LIB, "setting FD_CLOEXEC for '"PID_FILE"' failed: %s",
+-			 strerror(errno));
++		DBG1(DBG_LIB, "setting FD_CLOEXEC for '%s' failed: %s",
++			 pid_file, strerror(errno));
+ 	}
+ 	/* Only change owner of the pidfile if we have CAP_CHOWN. Otherwise,
+ 	 * attempt to change group of pidfile to group under which charon
+@@ -266,10 +266,10 @@
+ 	pidfile = fdopen(fd, "w");
+ 	if (!pidfile)
+ 	{
+-		DBG1(DBG_DMN, "unable to open pidfile '"PID_FILE"': %s",
+-			 strerror(errno));
++		DBG1(DBG_DMN, "unable to open pidfile '%s': %s",
++			 pid_file, strerror(errno));
+ 		close(fd);
+-		unlink(PID_FILE);
++		unlink(pid_file);
+ 		return TRUE;
+ 	}
+ 	fprintf(pidfile, "%d\n", getpid());
+@@ -290,7 +290,7 @@
+ 	{
+ 		ignore_result(ftruncate(fileno(pidfile), 0));
+ 		fclose(pidfile);
+-		unlink(PID_FILE);
++		unlink(pid_file);
+ 	}
+ }
+ 
+@@ -304,6 +304,7 @@
+ 		fprintf(stderr, "%s\n", msg);
+ 	}
+ 	fprintf(stderr, "Usage: charon\n"
++					"         --pid-file <absolute path>\n"
+ 					"         [--help]\n"
+ 					"         [--version]\n"
+ 					"         [--use-syslog]\n"
+@@ -363,6 +364,7 @@
+ 			{ "help", no_argument, NULL, 'h' },
+ 			{ "version", no_argument, NULL, 'v' },
+ 			{ "use-syslog", no_argument, NULL, 'l' },
++			{ "pid-file", required_argument, NULL, 'p' },
+ 			/* TODO: handle "debug-all" */
+ 			{ "debug-dmn", required_argument, &group, DBG_DMN },
+ 			{ "debug-mgr", required_argument, &group, DBG_MGR },
+@@ -400,6 +402,9 @@
+ 			case 'l':
+ 				use_syslog = TRUE;
+ 				continue;
++			case 'p':
++				pid_file = optarg;
++				continue;
+ 			case 0:
+ 				/* option is in group */
+ 				levels[group] = atoi(optarg);
+@@ -412,6 +417,13 @@
+ 		break;
+ 	}
+ 
++	if (!pid_file || pid_file[0] != '/')
++	{
++		usage("--pid-file with an absolute path is required");
++		status = 1;
++		goto deinit;
++	}
++
+ 	if (!lookup_uid_gid())
+ 	{
+ 		dbg_stderr(DBG_DMN, 1, "invalid uid/gid - aborting charon");

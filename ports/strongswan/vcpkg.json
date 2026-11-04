@@ -1,0 +1,11 @@
+{
+  "name": "strongswan",
+  "version": "6.1.0",
+  "description": "strongSwan IKE daemon (charon), built as one binary for the Linux IKEv2 client",
+  "homepage": "https://www.strongswan.org",
+  "license": "GPL-2.0-or-later",
+  "supports": "linux",
+  "dependencies": [
+    "openssl"
+  ]
+}

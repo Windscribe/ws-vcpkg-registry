@@ -23,6 +23,7 @@
     "scapix-bin": { "baseline": "2.0.16", "port-version": 0 },
     "skyr-url": { "baseline": "1.13.0", "port-version": 2 },
     "spdlog": { "baseline": "1.17.0", "port-version": 1 },
+    "strongswan": { "baseline": "6.1.0", "port-version": 0 },
     "tap-windows6-driver": { "baseline": "9.27.0", "port-version": 0 },
     "wireguard-windows": { "baseline": "1.1", "port-version": 0 }
   }
