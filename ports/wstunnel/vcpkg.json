@@ -1,0 +1,8 @@
+{
+  "name": "wstunnel",
+  "version": "1.0.7",
+  "description": "Windscribe WebSocket and TLS tunnel client used by the Stealth and WStunnel protocols",
+  "homepage": "https://github.com/Windscribe/wstunnel",
+  "license": "GPL-3.0-only",
+  "supports": "osx | ((windows | linux) & (x64 | arm64))"
+}
