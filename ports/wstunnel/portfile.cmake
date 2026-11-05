@@ -19,9 +19,10 @@ set(ENV{GOTOOLCHAIN} local)
 # -modcacherw keeps the module cache deletable when vcpkg cleans buildtrees.
 # -buildvcs=false because buildtrees sit inside the vcpkg git checkout.
 set(ENV{GOFLAGS} "-mod=readonly -modcacherw -buildvcs=false")
-# On Linux, vcpkg patchelfs the RPATH of every dynamic ELF in tools/, which leaves Go binaries segfaulting at startup.
-# A static binary has no .dynamic section, so the fixup skips it.
-set(ENV{CGO_ENABLED} 0)
+# Install the binary exactly as Go links it. vcpkg's rpath rewriting leaves dynamic Go binaries segfaulting on Linux
+# and would add an rpath to the macOS binary.
+set(VCPKG_FIXUP_ELF_RPATH OFF)
+set(VCPKG_FIXUP_MACHO_RPATH OFF)
 
 set(OUT_DIR "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}")
 file(REMOVE_RECURSE "${OUT_DIR}")
@@ -38,7 +39,7 @@ if(VCPKG_TARGET_IS_WINDOWS)
     set(ENV{GOOS} windows)
     set(ENV{GOARCH} ${GOARCH})
     vcpkg_execute_build_process(
-        COMMAND "${GO}" build -trimpath "-ldflags=-w -s" -o "${OUT_DIR}/wstunnel.exe"
+        COMMAND "${GO}" build -trimpath "-gcflags=all=-l" "-ldflags=-w -s" -o "${OUT_DIR}/wstunnel.exe"
         WORKING_DIRECTORY "${SOURCE_PATH}"
         LOGNAME "build-${TARGET_TRIPLET}"
     )
@@ -62,7 +63,7 @@ else()
         endif()
         set(ENV{GOARCH} ${GOARCH})
         vcpkg_execute_build_process(
-            COMMAND "${GO}" build -trimpath "-ldflags=-w -s" -o "${OUT_DIR}/${GOARCH}/wstunnel"
+            COMMAND "${GO}" build -trimpath "-gcflags=all=-l" "-ldflags=-w -s" -o "${OUT_DIR}/${GOARCH}/wstunnel"
             WORKING_DIRECTORY "${SOURCE_PATH}"
             LOGNAME "build-${TARGET_TRIPLET}-${GOARCH}"
         )
@@ -76,16 +77,9 @@ else()
             WORKING_DIRECTORY "${OUT_DIR}"
             LOGNAME "lipo-${TARGET_TRIPLET}"
         )
-        set(STRIP_FLAGS -ur)
     else()
         file(COPY_FILE "${ARCH_BINARIES}" "${BINARY}")
-        set(STRIP_FLAGS --strip-all)
     endif()
-    vcpkg_execute_build_process(
-        COMMAND strip ${STRIP_FLAGS} "${BINARY}"
-        WORKING_DIRECTORY "${OUT_DIR}"
-        LOGNAME "strip-${TARGET_TRIPLET}"
-    )
 
     file(INSTALL "${BINARY}" DESTINATION "${CURRENT_PACKAGES_DIR}/tools/${PORT}"
          FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
